@@ -1,0 +1,31 @@
+{
+  "name": "http-request",
+  "version": "1.0.0",
+  "description": "wrapper for http request",
+  "main": "index.js",
+  "scripts": {
+    "test": "istanbul cover ./spec/index.js && istanbul check-coverage",
+    "test-no-coverage": "jasmine ./spec/*/**"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alecksun/http-request.git"
+  },
+  "keywords": [
+    "http",
+    "request"
+  ],
+  "author": "Aleck Sun",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/alecksun/http-request/issues"
+  },
+  "homepage": "https://github.com/alecksun/http-request#readme",
+  "dependencies": {},
+  "devDependencies": {
+    "eslint": "^4.11.0",
+    "istanbul": "^0.4.5",
+    "jasmine": "^2.8.0",
+    "mockserver-node": "^5.3.0"
+  }
+}
