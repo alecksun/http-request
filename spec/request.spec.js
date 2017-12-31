@@ -145,5 +145,17 @@ describe("request", () => {
                 done.fail(err);
             });
         });
+
+        it("logger hould work", done => {
+            const req = nock("http://test-url").post("/path").reply(200, "result");
+
+            request('http://test-url/path').logger(console.log).post().send("aaa").then(result => {
+                expect(result.body).toBe('result');
+                expect(result.status).toBe(200);
+                done();
+            }).catch(err => {
+                done.fail(err);
+            });
+        });
     })
 });
