@@ -146,7 +146,7 @@ describe("request", () => {
             });
         });
 
-        it("logger hould work", done => {
+        it("logger should work", done => {
             const req = nock("http://test-url").post("/path").reply(200, "result");
 
             request('http://test-url/path').logger(console.log).post().send("aaa").then(result => {
@@ -155,6 +155,32 @@ describe("request", () => {
                 done();
             }).catch(err => {
                 done.fail(err);
+            });
+        });
+
+        it("circuit reject on error", done => {
+            const req = nock("http://test-url").post("/path").reply(500, "result");
+
+            request('http://test-url/path').logger(console.log).post().send("aaa").then(result => {
+                done.fail("should fail");
+            }).catch(err => {
+                expect(err.status).toBe(500);
+                expect(err.body).toBe('result');
+                done();
+            });
+        });
+
+        it("circuit should break on 429 should work", done => {
+            const req = nock("http://test-url").post("/path").reply(429, "result");
+
+            request('http://test-url/path').circuitBreaker('test').post().send("aaa").catch(err => {
+                expect(err.status).toBe(429);
+                expect(err.body).toBe('result');
+
+                return request('http://test-url/path').logger(console.log).circuitBreaker('test').post().send("aaa");
+            }).catch(err => {
+                expect(err.status).toBe(429);
+                done();
             });
         });
     })
