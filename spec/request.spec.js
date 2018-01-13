@@ -1,9 +1,12 @@
 'use strict';
 const { request }= require('../');
 
+const getCircuitBreaker = require('../lib/circuitBreaker');
+
 const http = require("http");
 const https = require("https");
 const nock = require("nock");
+
 
 
 
@@ -15,6 +18,7 @@ describe("request", () => {
 
     afterEach(() => {
         nock.cleanAll();
+        getCircuitBreaker('test').reset();
     });
 
 
@@ -170,8 +174,37 @@ describe("request", () => {
             });
         });
 
-        it("circuit should break on 429 should work", done => {
-            const req = nock("http://test-url").post("/path").reply(429, "result");
+        it("circuit should break on 429 should work with Retry-After being seconds", done => {
+            const req = nock("http://test-url").post("/path").reply(429, "result", { 'Retry-After': 50 });
+
+            request('http://test-url/path').circuitBreaker('test').post().send("aaa").catch(err => {
+                expect(err.status).toBe(429);
+                expect(err.body).toBe('result');
+
+                return request('http://test-url/path').logger(console.log).circuitBreaker('test').post().send("aaa");
+            }).catch(err => {
+                expect(err.status).toBe(429);
+                done();
+            });
+        });
+
+        it("circuit should break on 429 should work with Retry-After being seconds in string format", done => {
+            const req = nock("http://test-url").post("/path").reply(429, "result", { 'Retry-After': '60' });
+
+            request('http://test-url/path').circuitBreaker('test').post().send("aaa").catch(err => {
+                expect(err.status).toBe(429);
+                expect(err.body).toBe('result');
+
+                return request('http://test-url/path').logger(console.log).circuitBreaker('test').post().send("aaa");
+            }).catch(err => {
+                expect(err.status).toBe(429);
+                done();
+            });
+        });
+
+        it("circuit should break on 429 should work with Retry-After being a date", done => {
+            const date = new Date(Date.now() + 70000);
+            const req = nock("http://test-url").post("/path").reply(429, "result", { 'Retry-After': date.toUTCString() });
 
             request('http://test-url/path').circuitBreaker('test').post().send("aaa").catch(err => {
                 expect(err.status).toBe(429);
