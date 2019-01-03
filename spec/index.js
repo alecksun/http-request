@@ -11,3 +11,8 @@ jasmine.jasmine.DEFAULT_TIMEOUT_INTERVAL = 2000;
 
 
 jasmine.execute();
+
+process.on('error', err => {
+    console.log(err);
+    process.exit(-1);
+});
