@@ -1,7 +1,9 @@
 'use strict';
 const { request }= require('../');
 
-const getCircuitBreaker = require('../lib/circuitBreaker');
+const Breaker = require('../lib/circuitBreaker');
+const Logger = require("logger");
+const logger = new Logger("UnitTest");
 
 const http = require("http");
 const https = require("https");
@@ -18,7 +20,6 @@ describe("request", () => {
 
     afterEach(() => {
         nock.cleanAll();
-        getCircuitBreaker('test').reset();
     });
 
 
@@ -153,7 +154,7 @@ describe("request", () => {
         it("logger should work", done => {
             const req = nock("http://test-url").post("/path").reply(200, "result");
 
-            request('http://test-url/path').logger(console.log).post().send("aaa").then(result => {
+            request('http://test-url/path').logger(console).post().send("aaa").then(result => {
                 expect(result.body).toBe('result');
                 expect(result.status).toBe(200);
                 done();
@@ -165,7 +166,7 @@ describe("request", () => {
         it("circuit reject on error", done => {
             const req = nock("http://test-url").post("/path").reply(500, "result");
 
-            request('http://test-url/path').logger(console.log).post().send("aaa").then(result => {
+            request('http://test-url/path').logger(console).post().send("aaa").then(result => {
                 done.fail("should fail");
             }).catch(err => {
                 expect(err.status).toBe(500);
@@ -175,13 +176,15 @@ describe("request", () => {
         });
 
         it("circuit should break on 429 should work with Retry-After being seconds", done => {
-            const req = nock("http://test-url").post("/path").reply(429, "result", { 'Retry-After': 50 });
+            nock("http://test-url").post("/path").reply(429, "result", { 'Retry-After': 50 });
+            nock("http://test-url").post("/path2").reply(500, "result");
+            const breaker = new Breaker(logger, "UnitTest");
 
-            request('http://test-url/path').circuitBreaker('test').post().send("aaa").catch(err => {
+            request('http://test-url/path').circuitBreaker(breaker).post().send("aaa").catch(err => {
                 expect(err.status).toBe(429);
                 expect(err.body).toBe('result');
 
-                return request('http://test-url/path').logger(console.log).circuitBreaker('test').post().send("aaa");
+                return request('http://test-url/path2').logger(logger).circuitBreaker(breaker).post().send("aaa");
             }).catch(err => {
                 expect(err.status).toBe(429);
                 done();
@@ -189,13 +192,15 @@ describe("request", () => {
         });
 
         it("circuit should break on 429 should work with Retry-After being seconds in string format", done => {
-            const req = nock("http://test-url").post("/path").reply(429, "result", { 'Retry-After': '60' });
+            nock("http://test-url").post("/path").reply(429, "result", { 'Retry-After': '60' });
+            nock("http://test-url").post("/path2").reply(500, "result");
+            const breaker = new Breaker(logger, "UnitTest");
 
-            request('http://test-url/path').circuitBreaker('test').post().send("aaa").catch(err => {
+            request('http://test-url/path').circuitBreaker(breaker).post().send("aaa").catch(err => {
                 expect(err.status).toBe(429);
                 expect(err.body).toBe('result');
 
-                return request('http://test-url/path').logger(console.log).circuitBreaker('test').post().send("aaa");
+                return request('http://test-url/path2').logger(console).circuitBreaker(breaker).post().send("aaa");
             }).catch(err => {
                 expect(err.status).toBe(429);
                 done();
@@ -204,13 +209,15 @@ describe("request", () => {
 
         it("circuit should break on 429 should work with Retry-After being a date", done => {
             const date = new Date(Date.now() + 70000);
-            const req = nock("http://test-url").post("/path").reply(429, "result", { 'Retry-After': date.toUTCString() });
+            nock("http://test-url").post("/path").reply(429, "result", { 'Retry-After': date.toUTCString() });
+            nock("http://test-url").post("/path2").reply(500, "result");
+            const breaker = new Breaker(logger, "UnitTest");
 
-            request('http://test-url/path').circuitBreaker('test').post().send("aaa").catch(err => {
+            request('http://test-url/path').circuitBreaker(breaker).post().send("aaa").catch(err => {
                 expect(err.status).toBe(429);
                 expect(err.body).toBe('result');
 
-                return request('http://test-url/path').logger(console.log).circuitBreaker('test').post().send("aaa");
+                return request('http://test-url/path2').logger(console).circuitBreaker(breaker).post().send("aaa");
             }).catch(err => {
                 expect(err.status).toBe(429);
                 done();
